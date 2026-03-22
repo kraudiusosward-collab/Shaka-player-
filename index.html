@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaka Player Clear Key MPD (Faili Moja)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        [data-shaka-player-container] {
+            width: 100%;
+            max-width: 800px; /* Ongeza max-width hapa pia */
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            background-color: black;
+            margin: 0 auto; /* Tengeneza katikati */
+        }
+
+        [data-shaka-player-container] video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shaka Player Clear Key MPD</h1>
+
+    <div data-shaka-player-container>
+        <video autoplay data-shaka-player id="video"></video>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.3.0/dist/shaka-player.compiled.js"></script>
+    <script>
+        (function() {
+            // !!! BADILISHA HAPA na MPD URL yako halisi !!!
+            const manifestUri = 'YOUR_MPD_STREAM_URL_HERE'; 
+
+            // !!! BADILISHA HIZI na clear keys zako halisi !!!
+            // Fomati ni 'kid:key'. KID ni Content ID, Key ni encryption key.
+            // KID na Key zinapaswa kuwa katika hex string.
+            const clearKeys = {
+                'YOUR_KID_IN_HEX': 'YOUR_KEY_IN_HEX',
+                // 'ANOTHER_KID_IN_HEX': 'ANOTHER_KEY_IN_HEX', // Ongeza clear keys zingine kama unazo
+            };
+
+            async function init() {
+                // Angalia kama browser inasaidia Shaka Player
+                if (!shaka.Player.is */
+                    console.error('Browser haisaidii Shaka Player.');
+                    return;
+                }
+
+                const video = document.getElementById('video');
+                const player = new shaka.Player(video);
+
+                // Sikiliza matukio ya makosa
+                player.addEventListener('error', onErrorEvent);
+
+                // Sanidi clear keys kwa Shaka Player
+                player.configure({
+                    drm: {
+                        clearKeys: clearKeys,
+                    },
+                });
+
+                try {
+                    console.log('Inapakia manifest:', manifestUri);
+                    await player.load(manifestUri);
+                    console.log('Video imepakiwa na inacheza!');
+                } catch (error) {
+                    // Error handling, angalia onErrorEvent
+                    onError(error);
+                }
+            }
+
+            function onErrorEvent(event) {
+                // Chukua kosa kutoka kwenye event object
+                onError(event.detail);
+            }
+
+            function onError(error) {
+                // Log kosa kwenye console
+                console.error('Kosa:', error.code, error.severity, error.category, error.data);
+                // Unaweza pia kuonyesha ujumbe wa kosa kwa mtumiaji hapa
+                alert('Kosa limetokea wakati wa kucheza video: ' + error.code + '\nTafadhali angalia console kwa maelezo zaidi.');
+            }
+
+            // Piga simu ya init() wakati DOM imepakiwa kikamilifu.
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>
