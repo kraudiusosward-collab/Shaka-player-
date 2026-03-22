@@ -22,53 +22,118 @@
             width: 100%;
             height: 100%;
         }
+        #loadingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
     <div id="videoContainer">
         <video id="video" autoplay playsinline></video>
+        <div id="loadingOverlay">Inapakia...</div>
     </div>
+
     <script>
         const video = document.getElementById("video");
-        const player = new shaka.Player(video);
-        const ui = new shaka.ui.Overlay(player, video.parentElement, video);
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        let player; // Declare player globally to be accessible for re-initialization
 
-        /* DEFAULT UI CONTROLS */
-        ui.configure({
-            controlPanelElements: [
-                'play_pause',
-                'time_and_duration',
-                'spacer',
-                'mute',
-                'volume',
-                'language',
-                'quality',
-                'fullscreen'
-            ]
+        // Initialize Shaka Player
+        async function initializePlayer() {
+            if (player) {
+                await player.destroy(); // Destroy existing player if it exists
+            }
+            player = new shaka.Player(video);
+            const ui = new shaka.ui.Overlay(player, video.parentElement, video);
+
+            ui.configure({
+                controlPanelElements: [
+                    'play_pause',
+                    'time_and_duration',
+                    'spacer',
+                    'mute',
+                    'volume',
+                    'language',
+                    'quality',
+                    'fullscreen'
+                ]
+            });
+
+            // Listen for errors
+            player.addEventListener('error', onErrorEvent);
+        }
+
+        function onErrorEvent(event) {
+            console.error('Error code', event.detail.code, 'object', event.detail.data);
+            alert('Kuna tatizo limetokea wakati wa kupakia video. Tafadhali jaribu tena baadae.');
+            loadingOverlay.style.display = 'flex'; // Show loading overlay on error
+        }
+
+        async function loadChannelDataAndPlay() {
+            loadingOverlay.style.display = 'flex'; // Onyesha "Inapakia Video..."
+            try {
+                const response = await fetch('https://dde.ct.ws/azam.php');
+                const data = await response.json();
+
+                const azamSports1 = data.find(channel => channel.name === 'AzamSports 1 HD');
+
+                if (azamSports1 && azamSports1.mpd_url && azamSports1.key) {
+                    const mpdUrl = azamSports1.mpd_url;
+                    const clearKey = azamSports1.key;
+
+                    await initializePlayer(); // Re-initialize player for new stream
+                    
+                    if (clearKey) {
+                        const [kid, key] = clearKey.split(":");
+                        player.configure({
+                            drm: {
+                                clearKeys: {
+                                    [kid]: key
+                                }
+                            }
+                        });
+                    }
+
+                    await player.load(mpdUrl);
+                    console.log('Video ya AzamSports 1 HD imepakiwa na kuchezwa.');
+                    loadingOverlay.style.display = 'none'; // Ficha "Inapakia Video..." baada ya kupakia
+                    video.play(); // Hakikisha video inaanza kucheza
+                } else {
+                    console.error('Hakuna data ya AzamSports 1 HD iliyopatikana au taarifa hazijakamilika.');
+                    loadingOverlay.textContent = 'Data ya AzamSports 1 HD haijapatikana.';
+                }
+            } catch (error) {
+                console.error('Kuna tatizo la mtandao au server:', error);
+                loadingOverlay.textContent = 'Kuna tatizo la mtandao au server.';
+            }
+        }
+
+        // Pakia data na ucheze video mara moja wakati ukurasa unapakia
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChannelDataAndPlay();
+            // Sasisha data kila baada ya sekunde 30
+            setInterval(loadChannelDataAndPlay, 30000); 
         });
 
-        // Weka URL yako ya DASH MPD hapa
-        const mpdUrl = "https://cdnblncr.azamtvltd.co.tz/live/eds/AzamSport1/DASH/AzamSport1.mpd?cdntoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3NzQyNDIxMjIsInNpcCI6IjE1LjE1OC40MC4xNzUifQ.8kap7EXjgHFF1YYIfyQ0t_6hAXCrYk1dGlryRcdEVsSZsZ5HzCDKuaAzqhesUHitSHKQ9UTErT660ft7H7Ms6A"; 
-        // Weka ClearKey yako hapa kwa mfumo wa "kid:key"
-        const clearKey = "c31df1600afc33799ecac543331803f2:dd2101530e222f545997d4c553787f85"; 
-
-        (async () => {
-            if (clearKey) {
-                const [kid, key] = clearKey.split(":");
-                player.configure({
-                    drm: {
-                        clearKeys: {
-                            [kid]: key
-                        }
-                    }
-                });
-            }
-            if (mpdUrl) {
-                await player.load(mpdUrl);
-            } else {
-                console.warn("Tafadhali weka 'mpdUrl' ili kuanza kucheza video.");
-            }
-        })();
+        // Initialize Shaka Player on page load
+        shaka.polyfill.installAll();
+        if (shaka.Player.is */* supported()) {
+            // Player initialization will now happen within loadChannelDataAndPlay
+        } else {
+            console.error('Browser haitumii Shaka Player.');
+            loadingOverlay.textContent = 'Kivinjari chako hakitumii Shaka Player.';
+        }
     </script>
 </body>
 </html>
