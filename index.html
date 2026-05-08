@@ -3,57 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream - Proxy Mode</title>
+    <title>Advanced HLS Player - Proxy Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .video-box { width: 90%; max-width: 720px; border: 2px solid #444; background: #000; position: relative; }
-        video { width: 100%; display: block; }
-        .status { margin-top: 10px; font-size: 14px; color: #aaa; }
+        body { margin: 0; padding: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #fff; font-family: sans-serif; }
+        .player-container { width: 95%; max-width: 850px; background: #111; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        video { width: 100%; aspect-ratio: 16 / 9; outline: none; }
+        .controls-info { padding: 15px; text-align: center; font-size: 13px; color: #888; }
+        .badge { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 10px; margin-bottom: 5px; display: inline-block; }
     </style>
 </head>
 <body>
 
-<div class="video-box">
+<div class="player-container">
     <video id="video" controls autoplay playsinline></video>
+    <div class="controls-info">
+        <div class="badge">Live Stream</div>
+        <p id="status">Inapakia video kwa kutumia Proxy (Referer: x.com)...</p>
+    </div>
 </div>
-<div class="status" id="status">Inatayarisha video kupitia Proxy...</div>
 
 <script>
     const video = document.getElementById('video');
     const statusText = document.getElementById('status');
 
-    // Hapa tunatumia Public Proxy (Inaitwa AllOrigins au CORS Anywhere)
-    const originalUrl = 'http://het000.4rouwanda-shop.store/live/918454578001/index.m3u8';
-    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(originalUrl);
+    // Taarifa zako
+    const streamUrl = 'http://het000.4rouwanda-shop.store/live/918454578001/index.m3u8';
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
+    const referer = 'https://x.com/';
+
+    // Tunatumia AllOrigins Proxy kuzuia CORS
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(streamUrl)}`;
 
     if (Hls.isSupported()) {
         const hls = new Hls({
-            debug: false,
             xhrSetup: function(xhr, url) {
-                // Kuweka User-Agent ulioutaka
-                // Kumbuka: Baadhi ya proxies zinaweza kuzuia kubadilisha User-Agent kwa sababu za kiusalama
+                // Hapa tunajaribu kulazimisha Header (Kumbuka: Sio zote browser inaruhusu)
                 xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            }
+                
+                // Kumbuka: Browser nyingi huzuia kubadilisha 'Referer' na 'User-Agent' direct via JS
+                // Lakini tunaiweka hapa endapo proxy itaziruhusu kupita
+                if (url.includes('m3u8') || url.includes('ts')) {
+                    // Baadhi ya proxies zinasoma custom headers hizi
+                    xhr.setRequestHeader('X-Alt-Referer', referer); 
+                }
+            },
+            // Mipangilio ya kuzuia kukwama
+            maxBufferLength: 30,
+            maxMaxBufferLength: 600,
+            lowLatencyMode: true
         });
 
         hls.loadSource(proxyUrl);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            statusText.innerText = "Video inacheza sasa (Proxy Active)";
-            video.play();
+            statusText.innerHTML = "Inacheza sasa... <span style='color:green;'>● Online</span>";
+            video.play().catch(e => {
+                statusText.innerText = "Bonyeza 'Play' kuanza video";
+            });
         });
 
-        hls.on(Hls.Events.ERROR, function (event, data) {
+        hls.on(Hls.Events.ERROR, function(event, data) {
             if (data.fatal) {
-                statusText.innerText = "Tatizo: Server ya video bado inakataa. Huenda link imekufa au Proxy imezidiwa.";
-                console.log("HLS Error:", data);
+                console.error("HLS Fatal Error:", data);
+                statusText.innerHTML = "<span style='color:red;'>Tatizo la Muunganisho. Huenda Proxy imezuiwa au Headers zimekataaliwa na Server.</span>";
+                
+                // Jaribio la mwisho bila Proxy kama ikifeli
+                if(data.details === 'manifestLoadError') {
+                     // hls.loadSource(streamUrl); // Unaweza kuijaribu hapa bila proxy
+                }
             }
         });
 
-    } else {
-        statusText.innerText = "Kivinjari chako hakisupport HLS.js";
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Kwa ajili ya Safari
+        video.src = streamUrl;
     }
 </script>
 
