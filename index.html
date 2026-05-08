@@ -1,86 +1,141 @@
-<!DOCTYPE html>
-<html lang="sw">
+<!doctype html>
+
+<html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
+    <title>Kraudius TV</title>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced HLS Player - Proxy Mode</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.ui.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/controls.css">
+
     <style>
-        body { margin: 0; padding: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #fff; font-family: sans-serif; }
-        .player-container { width: 95%; max-width: 850px; background: #111; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        video { width: 100%; aspect-ratio: 16 / 9; outline: none; }
-        .controls-info { padding: 15px; text-align: center; font-size: 13px; color: #888; }
-        .badge { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 10px; margin-bottom: 5px; display: inline-block; }
+
+        html, body {
+
+            margin: 0;
+
+            padding: 0;
+
+            background: #000;
+
+            width: 100%;
+
+            height: 100%;
+
+        }
+
+        #videoContainer {
+
+            width: 100%;
+
+            height: 100%;
+
+        }
+
+        video {
+
+            width: 100%;
+
+            height: 100%;
+
+        }
+
     </style>
+
 </head>
+
 <body>
 
-<div class="player-container">
-    <video id="video" controls autoplay playsinline></video>
-    <div class="controls-info">
-        <div class="badge">Live Stream</div>
-        <p id="status">Inapakia video kwa kutumia Proxy (Referer: x.com)...</p>
+    <div id="videoContainer">
+
+        <video id="video" autoplay playsinline></video>
+
     </div>
-</div>
 
-<script>
-    const video = document.getElementById('video');
-    const statusText = document.getElementById('status');
+    <script>
 
-    // Taarifa zako
-    const streamUrl = 'http://het000.4rouwanda-shop.store/live/918454578001/index.m3u8';
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
-    const referer = 'https://x.com/';
+        const video = document.getElementById("video");
 
-    // Tunatumia AllOrigins Proxy kuzuia CORS
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(streamUrl)}`;
+        const player = new shaka.Player(video);
 
-    if (Hls.isSupported()) {
-        const hls = new Hls({
-            xhrSetup: function(xhr, url) {
-                // Hapa tunajaribu kulazimisha Header (Kumbuka: Sio zote browser inaruhusu)
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                
-                // Kumbuka: Browser nyingi huzuia kubadilisha 'Referer' na 'User-Agent' direct via JS
-                // Lakini tunaiweka hapa endapo proxy itaziruhusu kupita
-                if (url.includes('m3u8') || url.includes('ts')) {
-                    // Baadhi ya proxies zinasoma custom headers hizi
-                    xhr.setRequestHeader('X-Alt-Referer', referer); 
-                }
-            },
-            // Mipangilio ya kuzuia kukwama
-            maxBufferLength: 30,
-            maxMaxBufferLength: 600,
-            lowLatencyMode: true
+        const ui = new shaka.ui.Overlay(player, video.parentElement, video);
+
+        /* DEFAULT UI CONTROLS */
+
+        ui.configure({
+
+            controlPanelElements: [
+
+                'play_pause',
+
+                'time_and_duration',
+
+                'spacer',
+
+                'mute',
+
+                'volume',
+
+                'language',
+
+                'quality',
+
+                'fullscreen'
+
+            ]
+
         });
 
-        hls.loadSource(proxyUrl);
-        hls.attachMedia(video);
+        // Weka URL yako ya DASH MPD hapa
 
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            statusText.innerHTML = "Inacheza sasa... <span style='color:green;'>● Online</span>";
-            video.play().catch(e => {
-                statusText.innerText = "Bonyeza 'Play' kuanza video";
-            });
-        });
+        const mpdUrl = "https://live-pv-ta.amazon.fastly-edge.com/lhr-nitro/live/clients/dash/enc/cllekigzzn/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd"; 
 
-        hls.on(Hls.Events.ERROR, function(event, data) {
-            if (data.fatal) {
-                console.error("HLS Fatal Error:", data);
-                statusText.innerHTML = "<span style='color:red;'>Tatizo la Muunganisho. Huenda Proxy imezuiwa au Headers zimekataaliwa na Server.</span>";
-                
-                // Jaribio la mwisho bila Proxy kama ikifeli
-                if(data.details === 'manifestLoadError') {
-                     // hls.loadSource(streamUrl); // Unaweza kuijaribu hapa bila proxy
-                }
+        // Weka ClearKey yako hapa kwa mfumo wa "kid:key"
+
+        const clearKey = "294b5761cefc22d0c6312939e13d8278:52148f1042d238849f0a7813f1da8a7b"; 
+
+        (async () => {
+
+            if (clearKey) {
+
+                const [kid, key] = clearKey.split(":");
+
+                player.configure({
+
+                    drm: {
+
+                        clearKeys: {
+
+                            [kid]: key
+
+                        }
+
+                    }
+
+                });
+
             }
-        });
 
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Kwa ajili ya Safari
-        video.src = streamUrl;
-    }
-</script>
+            if (mpdUrl) {
+
+                await player.load(mpdUrl);
+
+            } else {
+
+                console.warn("Tafadhali weka 'mpdUrl' ili kuanza kucheza video.");
+
+            }
+
+        })();
+
+    </script>
 
 </body>
+
 </html>
