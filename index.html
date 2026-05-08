@@ -1,141 +1,52 @@
-<!doctype html>
-
-<html lang="en">
-
+<!DOCTYPE html>
+<html lang="sw">
 <head>
-
     <meta charset="UTF-8">
-
-    <title>Kraudius TV</title>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.ui.min.js"></script>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/controls.css">
-
+    <title>Live Stream Player</title>
+    <!-- Tunatumia HLS.js Library kwa ajili ya m3u8 -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-
-        html, body {
-
-            margin: 0;
-
-            padding: 0;
-
-            background: #000;
-
-            width: 100%;
-
-            height: 100%;
-
-        }
-
-        #videoContainer {
-
-            width: 100%;
-
-            height: 100%;
-
-        }
-
-        video {
-
-            width: 100%;
-
-            height: 100%;
-
-        }
-
+        body { background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { width: 80%; max-width: 800px; }
+        video { width: 100%; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     </style>
-
 </head>
-
 <body>
 
-    <div id="videoContainer">
+<div class="container">
+    <video id="video" controls autoplay playsinline></video>
+</div>
 
-        <video id="video" autoplay playsinline></video>
+<script>
+    const video = document.getElementById('video');
+    const videoSrc = 'http://het000.4rouwanda-shop.store/live/918454578001/index.m3u8';
 
-    </div>
-
-    <script>
-
-        const video = document.getElementById("video");
-
-        const player = new shaka.Player(video);
-
-        const ui = new shaka.ui.Overlay(player, video.parentElement, video);
-
-        /* DEFAULT UI CONTROLS */
-
-        ui.configure({
-
-            controlPanelElements: [
-
-                'play_pause',
-
-                'time_and_duration',
-
-                'spacer',
-
-                'mute',
-
-                'volume',
-
-                'language',
-
-                'quality',
-
-                'fullscreen'
-
-            ]
-
+    if (Hls.isSupported()) {
+        const hls = new Hls({
+            // Hapa tunaweka mipangilio ili kuzuia kukwama (buffering)
+            enableWorker: true,
+            lowLatencyMode: true,
+            xhrSetup: function(xhr, url) {
+                // Hapa tunaweka User-Agent uliyotoa
+                xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36');
+            }
+        });
+        
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            video.play();
         });
 
-        // Weka URL yako ya DASH MPD hapa
-
-        const mpdUrl = "https://cdnblncr.azamtvltd.co.tz/live/eds/AzamSport1/DASH/AzamSport1.mpd?cdntoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3Nzc1MTczNDEsInNpcCI6IjE4LjY4LjI4LjE2OSJ9.ASZPoFt7ALFALDyDNoW0dgR8QPD_gCYxlR7z7_C8KZHdyRI-6tg1m4mzaHtLolmctEGfYt7PGEpgu0rlaIHMKw"; 
-
-        // Weka ClearKey yako hapa kwa mfumo wa "kid:key"
-
-        const clearKey = "c31df1600afc33799ecac543331803f2:dd2101530e222f545997d4c553787f85"; 
-
-        (async () => {
-
-            if (clearKey) {
-
-                const [kid, key] = clearKey.split(":");
-
-                player.configure({
-
-                    drm: {
-
-                        clearKeys: {
-
-                            [kid]: key
-
-                        }
-
-                    }
-
-                });
-
-            }
-
-            if (mpdUrl) {
-
-                await player.load(mpdUrl);
-
-            } else {
-
-                console.warn("Tafadhali weka 'mpdUrl' ili kuanza kucheza video.");
-
-            }
-
-        })();
-
-    </script>
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Kwa ajili ya Safari (iPhone/Mac) ambayo inasoma m3u8 yenyewe
+        video.src = videoSrc;
+        video.addEventListener('loadedmetadata', function() {
+            video.play();
+        });
+    }
+</script>
 
 </body>
-
-	</html>
+</html>
