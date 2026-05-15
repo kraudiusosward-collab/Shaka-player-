@@ -1,141 +1,217 @@
-<!doctype html>
-
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <title>Kraudius TV</title>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.ui.min.js"></script>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/controls.css">
-
-    <style>
-
-        html, body {
-
-            margin: 0;
-
-            padding: 0;
-
-            background: #000;
-
-            width: 100%;
-
-            height: 100%;
-
+<!doctype html><html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AZAM ONE - Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Shaka Player UI Library na CSS kutoka msimbo wa pili kwa ajili ya muonekano mpya -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.ui.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/controls.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+  <style>
+        body { background-color: #000; margin: 0; overflow: hidden; }
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        /* Kuzuia migongano ya muonekano na kuhakikisha video inajaa skrini nzima */
+        .shaka-video-container { width: 100%; height: 100%; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+   </style>
+ </head>
+ <body class="h-screen w-screen relative group">
+  <div id="playerContainer" class="fixed inset-0 flex items-center justify-center bg-black overflow-hidden">
+   
+   <!-- Hili ndilo container la Shaka UI ambalo limebeba video na muonekano mpya -->
+   <div id="videoContainer" class="w-full h-full">
+        <video id="videoPlayer" autoplay playsinline></video>
+   </div>
 
-        #videoContainer {
+   <!-- Loading Indicator ya msimbo wa kwanza -->
+   <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-black/50 z-40 pointer-events-none">
+    <div class="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+   </div>
 
-            width: 100%;
+   <!-- Mfumo wa makosa (Error Display) na Authorized App umerudishwa vilevile -->
+   <div id="errorDisplay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center z-[100]">
+    <h2 id="errorTitle" class="text-xl text-white mb-2 font-bold">Playback Error</h2>
+    <div id="errorMessage" class="max-w-md"></div>
+    <button onclick="location.reload()" class="mt-6 px-8 py-2 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition">Try Again</button>
+   </div>
+  </div>
 
-            height: 100%;
+  <script>
+        var shakaPlayer = null;
+        var hls = null;
+        var ui = null;
+        var video = document.getElementById('videoPlayer');
+        var videoContainer = document.getElementById('videoContainer');
 
-        }
+        // --- SERVER-INJECTED DATA (Zote za Azam One zimerudishwa kama zilivyokuwa) ---
+        var streamUrl = "https://cdnblncr.azamtvltd.co.tz/live/eds/AzamOne/DASH/AzamOne.mpd?cdntoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3Nzg4ODcxNjQsInNpcCI6IjE1LjE1OC41LjE0NSJ9.mVo5xVllG0do850jtjzdBKB_EHa1UCdeGHQgMqjFygKMphvtOrwMB3PXrBk4R1dzZLP6Ul2tgjTmzWcgtzUUvQ";
+        var originalStreamUrl = "https://cdnblncr.azamtvltd.co.tz/live/eds/AzamOne/DASH/AzamOne.mpd?cdntoken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3Nzg4ODcxNjQsInNpcCI6IjE1LjE1OC41LjE0NSJ9.mVo5xVllG0do850jtjzdBKB_EHa1UCdeGHQgMqjFygKMphvtOrwMB3PXrBk4R1dzZLP6Ul2tgjTmzWcgtzUUvQ";
+        var streamType = "mpd";
+        var clearKey = "b5cbe1bb5acf3c7f9995be428245cfcd:89f1188a11e5e000d4443eb27ca378e1";
+        var useProxy = false;
+        var proxyUA = "";
+        var proxyReferer = "";
+        var proxyOrigin = "";
+        var detectedIdentity = "Com.swahilitv.com";
+        var mpingoApiKey = "84986c11cf7c423fdd69cd365a78b4bc8537b4b796293e40015c4ff9d059";
 
-        video {
-
-            width: 100%;
-
-            height: 100%;
-
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-    <div id="videoContainer">
-
-        <video id="video" autoplay playsinline></video>
-
-    </div>
-
-    <script>
-
-        const video = document.getElementById("video");
-
-        const player = new shaka.Player(video);
-
-        const ui = new shaka.ui.Overlay(player, video.parentElement, video);
-
-        /* DEFAULT UI CONTROLS */
-
-        ui.configure({
-
-            controlPanelElements: [
-
-                'play_pause',
-
-                'time_and_duration',
-
-                'spacer',
-
-                'mute',
-
-                'volume',
-
-                'language',
-
-                'quality',
-
-                'fullscreen'
-
-            ]
-
-        });
-
-        // Weka URL yako ya DASH MPD hapa
-
-        const mpdUrl = "https://live-pv-ta.amazon.fastly-edge.com/lhr-nitro/live/clients/dash/enc/cllekigzzn/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd"; 
-
-        // Weka ClearKey yako hapa kwa mfumo wa "kid:key"
-
-        const clearKey = "294b5761cefc22d0c6312939e13d8278:52148f1042d238849f0a7813f1da8a7b"; 
-
-        (async () => {
-
-            if (clearKey) {
-
-                const [kid, key] = clearKey.split(":");
-
-                player.configure({
-
-                    drm: {
-
-                        clearKeys: {
-
-                            [kid]: key
-
-                        }
-
-                    }
-
-                });
-
+        window.onload = function() {
+            if (!streamUrl) {
+                showError("Stream not available. Channel might be inactive.");
+                return;
             }
+            startPlayback(streamUrl, clearKey, streamType);
+        };
 
-            if (mpdUrl) {
-
-                await player.load(mpdUrl);
-
+        function startPlayback(url, clearkey, type) {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            var playbackPromise;
+            if (type === 'hls' || url.indexOf('.m3u8') !== -1) {
+                playbackPromise = playHLS(url);
             } else {
-
-                console.warn("Tafadhali weka 'mpdUrl' ili kuanza kucheza video.");
-
+                var mpdUrlToLoad = (useProxy) ? originalStreamUrl : url;
+                playbackPromise = playMPD(mpdUrlToLoad, clearkey);
             }
 
-        })();
+            if (playbackPromise && playbackPromise.then) {
+                playbackPromise.then(function() {
+                    document.getElementById('loadingIndicator').classList.add('hidden');
+                })['catch'](function(e) {
+                    showError("Playback Error: " + (e.message || e.code || "Unknown"), url);
+                });
+            } else {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+        }
 
-    </script>
+        function playHLS(url) {
+            if (window.Hls && Hls.isSupported()) {
+                hls = new Hls({
+                    xhrSetup: function(xhr, xhrUrl) {
+                        if (xhrUrl.indexOf('mpingotv.com') !== -1) {
+                            xhr.setRequestHeader('X-Requested-With', detectedIdentity);
+                            xhr.setRequestHeader('Authorization', 'Bearer ' + mpingoApiKey);
+                        }
+                    }
+                });
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                return { then: function(cb) { cb(); return { 'catch': function(c) { 
+                    hls.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) c(data); });
+                } }; } };
+            } else {
+                video.src = url;
+                video.play();
+                return { then: function(cb) { cb(); return { 'catch': function() {} }; } };
+            }
+        }
 
-</body>
+        function base64ToHex(base64) {
+            try {
+                base64 = base64.trim().replace(/-/g, '+').replace(/_/g, '/');
+                while (base64.length % 4 !== 0) base64 += '=';
+                var bin = atob(base64);
+                var hex = [];
+                for (var i = 0; i < bin.length; ++i) {
+                    var tmp = bin.charCodeAt(i).toString(16);
+                    if (tmp.length === 1) tmp = '0' + tmp;
+                    hex.push(tmp);
+                }
+                return hex.join('').toLowerCase();
+            } catch (e) {
+                return base64;
+            }
+        }
 
+        function playMPD(url, clearkey) {
+            if (!window.shaka || !shaka.Player.isBrowserSupported()) {
+                showError("DASH not supported by this browser.");
+                return null;
+            }
+
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                showError("DRM Content Error: ClearKey DRM requires HTTPS. Your site is running on insecure HTTP.", url);
+                return null;
+            }
+
+            shakaPlayer = new shaka.Player(video);
+
+            // Muonekano mpya wa Shaka UI kutoka msimbo wa pili ulioweka
+            ui = new shaka.ui.Overlay(shakaPlayer, videoContainer, video);
+            ui.configure({
+                controlPanelElements: [
+                    'play_pause',
+                    'time_and_duration',
+                    'spacer',
+                    'mute',
+                    'volume',
+                    'language',
+                    'quality',
+                    'fullscreen'
+                ]
+            });
+
+            // Mifumo yote ya usalama, headers na proxy filters imebaki salama hapa
+            shakaPlayer.getNetworkingEngine().registerRequestFilter(function(type, request) {
+                if (request.uris[0].indexOf('mpingotv.com') !== -1) {
+                    request.headers['X-Requested-With'] = detectedIdentity;
+                    request.headers['Authorization'] = 'Bearer ' + mpingoApiKey;
+                }
+
+                if (useProxy && request.uris[0].indexOf('proxy.php') === -1 && request.uris[0].indexOf('mpingotv.com') === -1) {
+                    var uri = request.uris[0];
+                    request.uris[0] = 'proxy.php?url=' + encodeURIComponent(uri);
+                    if (proxyUA) request.uris[0] += '&ua=' + encodeURIComponent(proxyUA);
+                    if (proxyReferer) request.uris[0] += '&referer=' + encodeURIComponent(proxyReferer);
+                    if (proxyOrigin)  request.uris[0] += '&origin=' + encodeURIComponent(proxyOrigin);
+                }
+            });
+            
+            if (clearkey) {
+                var config = { drm: { clearKeys: {} } };
+                var pairs = clearkey.split(',');
+                pairs.forEach(function(pair) {
+                    if (pair.indexOf(':') !== -1) {
+                        var parts = pair.split(':').map(function(s) { return s.trim(); });
+                        var keyId = parts[0];
+                        var key = parts[1];
+
+                        if (!/^[0-9a-fA-F]{32}$/.test(keyId)) keyId = base64ToHex(keyId);
+                        if (!/^[0-9a-fA-F]{32}$/.test(key))   key = base64ToHex(key);
+
+                        config.drm.clearKeys[keyId] = key;
+                    }
+                });
+                shakaPlayer.configure(config);
+            }
+
+            return shakaPlayer.load(url.trim()).then(function() {
+                video.play();
+            });
+        }
+
+        function showError(msg, manifestUrl) {
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            var errorDisplay = document.getElementById('errorDisplay');
+            var errorMessage = document.getElementById('errorMessage');
+            errorDisplay.classList.remove('hidden');
+            
+            var identityHtml = '<div class="bg-red-500/10 border border-red-500/20 p-5 rounded-xl mb-4 text-left">' +
+                '<p class="text-red-400 text-xs mb-3 font-mono">' + String(msg) + '</p>' +
+                '<div class="pt-4 border-t border-white/5">' +
+                    '<p class="text-gray-500 text-[9px] uppercase font-black mb-1">Detected ID:</p>' +
+                    '<p class="text-blue-400 font-mono text-xs break-all bg-black/40 p-2 rounded">' + (detectedIdentity || "Unidentified") + '</p>' +
+                '</div>' +
+            '</div>' +
+            '<p class="text-[10px] text-gray-500 italic">This content is restricted to authorized apps only.</p>';
+            errorMessage.innerHTML = identityHtml;
+        }
+  </script>
+ </body>
 </html>
