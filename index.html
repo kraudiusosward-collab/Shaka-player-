@@ -1,144 +1,49 @@
-<!doctype html>
-<html lang="en">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Azam Sport1 HD - Player</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
-  <style>
-        body { background-color: #000; margin: 0; overflow: hidden; }
-        .glass-panel {
-            background: rgba(15, 15, 20, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        #controlsOverlay { transition: opacity 0.5s ease-in-out; }
-        .controls-hidden { opacity: 0; pointer-events: none; cursor: none; }
-        .rotate-90 { transform: rotate(90deg) scale(1.5); }
-        .rotate-180 { transform: rotate(180deg); }
-        .rotate-270 { transform: rotate(270deg) scale(1.5); }
-        #videoPlayer { transition: transform 0.3s ease; }
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream Player</title>
+    <!-- Tunatumia CDN ya uhakika zaidi ya Clappr na HLS.js support -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; }
+        #player { width: 100vw; height: 100vh; }
     </style>
- </head>
- <body class="h-screen w-screen relative group">
-  <div id="playerContainer" class="fixed inset-0 flex items-center justify-center bg-black overflow-hidden">
-   <video id="videoPlayer" class="w-full h-full object-contain" autoplay playsinline></video>
-   <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-black/50">
-    <div class="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-   </div>
-   <div id="errorDisplay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center z-[100]">
-    <h2 id="errorTitle" class="text-xl text-white mb-2 font-bold">Playback Error</h2>
-    <div id="errorMessage" class="max-w-md"></div>
-    <button onclick="location.reload()" class="mt-6 px-8 py-2 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition">Try Again</button>
-   </div>
-   <div id="controlsOverlay" class="absolute inset-0 flex flex-col justify-between">
-    <div class="p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-start">
-     <div class="flex items-center space-x-3">
-      <button onclick="window.history.back()" class="p-2 hover:bg-white/10 rounded-full transition">
-       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-       </svg>
-      </button>
-      <div>
-       <h1 id="streamName" class="text-white font-bold text-sm md:text-base leading-tight">Azam Sport1 HD</h1>
-      </div>
-     </div>
-    </div>
-    <div class="p-2 md:p-6 bg-gradient-to-t from-black/90 to-transparent">
-     <div class="flex flex-col space-y-4">
-      <div class="flex items-center space-x-3 w-full group/seek">
-       <span id="currentTime" class="text-white font-mono text-[10px] opacity-70">00:00</span> <input type="range" id="progressBar" class="flex-grow h-1 accent-blue-500 bg-white/20 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="0" step="0.1"> <span id="duration" class="text-white font-mono text-[10px] opacity-70">00:00</span>
-      </div>
-      <div class="flex items-center justify-between">
-       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <button onclick="togglePlayPause()" class="pointer-events-auto bg-black/40 hover:bg-black/60 p-6 rounded-full transition-all transform active:scale-90 group">
-         <svg id="playIcon" class="h-16 w-16 text-white hidden" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z" />
-         </svg>
-         <svg id="pauseIcon" class="h-16 w-16 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-         </svg>
-        </button>
-       </div>
-       <!-- <div class="flex items-center space-x-6">
-                            <button onclick="togglePlayPause()" class="text-white hover:scale-110 transition active:scale-95">
-                                <svg id="playIcon" class="h-10 w-10 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                <svg id="pauseIcon" class="h-10 w-10" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                            </button>-->
-       <div class="flex items-center group/vol space-x-3">
-        <button onclick="toggleMute()" class="text-white hover:opacity-80 transition">
-         <svg id="volumeIcon" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-         </svg>
-         <svg id="muteIcon" class="h-6 w-6 hidden" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-         </svg>
-        </button>
-        <input type="range" id="volumeBar" class="w-20 md:w-24 h-1 accent-white appearance-none bg-white/20 rounded cursor-pointer" min="0" max="1" value="1" step="0.1">
-       </div>
-      </div>
-      <div class="flex items-center space-x-4 md:space-x-6">
-       <button onclick="openSettingsMenu(event)" class="text-white hover:rotate-90 transition duration-500 p-2 hover:bg-white/10 rounded-full">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-         <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" />
-        </svg>
-       </button>
-       <button onclick="rotateVideo()" class="text-white hover:scale-110 p-2 hover:bg-white/10 rounded-full transition">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-         <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-       </button>
-       <button onclick="toggleFullscreen()" class="text-white hover:scale-110 p-2 hover:bg-white/10 rounded-full transition">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-         <path d="M4 8V4m0 0h4M4 4l5 5m11-1v4m0 0h-4m4-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v-4m0 0h-4m4 4l-5-5" />
-        </svg>
-       </button>
-      </div>
-     </div>
-    </div>
-   </div>
-  </div>
-  <div id="settingsMenu" class="hidden absolute bottom-24 right-4 glass-panel rounded-xl p-5 w-64 max-h-[60vh] overflow-y-auto text-white z-50 shadow-2xl">
-   <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
-    <span class="font-bold text-xs uppercase tracking-widest text-blue-400">Settings</span>
-    <button onclick="closeSettingsMenu()" class="p-1 hover:bg-white/10 rounded-full transition">
-     <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
-     </svg>
-    </button>
-   </div>
-   <div class="space-y-6">
-    <div>
-     <h4 class="text-[9px] uppercase text-gray-500 font-black mb-3 tracking-tighter">Resolution</h4>
-     <div id="qualityLevels" class="flex flex-col space-y-1"></div>
-    </div>
-    <div>
-     <h4 class="text-[9px] uppercase text-gray-500 font-black mb-3 tracking-tighter">Audio Language</h4>
-     <div id="audioTracks" class="flex flex-col space-y-1"></div>
-    </div>
-   </div>
-  </div>
-  <script>
-        var shakaPlayer = null;
-        var hls = null;
-        var video = document.getElementById('videoPlayer');
-        var overlay = document.getElementById('controlsOverlay');
-        var playIcon = document.getElementById('playIcon');
-        var pauseIcon = document.getElementById('pauseIcon');
-        var currentTimeText = document.getElementById('currentTime');
-        var durationText = document.getElementById('duration');
-        var progressBar = document.getElementById('progressBar');
-        var volumeBar = document.getElementById('volumeBar');
-        
-        var rotateAngle = 0;
-        var controlsTimeout;
+</head>
+<body>
+<div id="player"></div>
 
-        // --- SERVER-INJECTED DATA ---
-        var streamUrl = "proxy.php?url=https%3A%2F%2Fcdnblncr.azamtvltd.co.tz%2Flive%2Feds%2FAzamSport1%2FDASH%2FAzamSport1.mpd%3Fcdntoken%3DeyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzaXAiOiI2Ni4yOS4xNDguMTE1IiwiZXhwIjoxNzgwNjQ1NzkxLCJtYXhfc2Vzc2lvbnMiOjEsImNsaWVudF9pZCI6IjQ3NDU2NSJ9.qAx09-PBL6msVGZL90XeRfX8uFgGA9BJKob9zsMuMh0wRjv68cOGbKzXxqO7nfzmZe1yMhL5NO4_7Rzp0RNMdg%26hdnts%3Dexp%3D1780645791%7Eacl%3D%2F%2A%7Ehmac%3Df2fba1755ccba755758373c6368c4c9098e48bfde6a9dd002f8b9e0cc26e0b85&ua=Mozilla%2F5.0+%28Linux%3B+Android+15%3B+Infinix+X6728B+Build%2FAP3A.240905.015.A2%3B+wv%29+AppleWebKit%2F537.36+%28KHTML%2C+like+Gecko%29+Version%2F4.0+Chrome%2F147.0.7727.111+Mobile+Safari%2F537.36&referer=https%3A%2F%2Fweb.azamtvmax.com%2F&origin=https%3A%2F%2Fweb.azamtvmax.com";
-        var streamType = "mpd";
-        var clearKey = "c31df1600afc33799ecac543331803f2:dd2101530e222f545997d4c553787f85";
+<script>
+    var player = new Clappr.Player({
+        source: "http://imediatv666.store:7777/live/Norma11/XGSYSF/162739.m3u8",
+        parentId: "#player",
+        width: '100%',
+        height: '100%',
+        autoPlay: true,
+        mute: true, // Browser nyingi huzuia autoPlay kama sauti ipo on.
+        preload: 'auto',
+        playback: {
+            hlsjsConfig: {
+                // Hii inasaidia kama server inahitaji utambulisho maalum
+                xhrSetup: function(xhr, url) {
+                    xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36');
+                }
+            }
+        },
+        // Inasaidia kuzuia matatizo ya Flash au HTML5 kulingana na browser
+        plugins: {
+            playback: [Clappr.HLS]
+        }
+    });
+
+    // Ili kuanzisha sauti baada ya video kuanza
+    player.on(Clappr.Events.PLAYER_PLAY, function() {
+        player.setVolume(100);
+    });
+</script>
+</body>
+</html>1600afc33799ecac543331803f2:dd2101530e222f545997d4c553787f85";
         var licenseUrl = "https://azy4sj9b.anycast.nagra.com/AZY4SJ9B/wvls/contentlicenseservice/v1/licenses";
         var authToken = "eyJraWQiOiI3NzUwOTAiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ2ZXIiOiIxLjAiLCJjb250ZW50UmlnaHRzIjpbeyJjb250ZW50SWQiOiJDSC0zOTc0YzJjZC05ZWM0LTRkMDMtODJiMS05Yzk5Mzk3M2U0ODciLCJzdGFydCI6IjIwMjUtMDMtMzFUMDA6MDA6MDBaIiwiZW5kIjoiMjAzMC0wMi0xOVQwMDowMDowMFoiLCJ1c2FnZVJ1bGVzUHJvZmlsZUlkIjoiVGVzdCJ9XSwidGVuYW50SWQiOiJBWlk0U0o5QiIsInR5cCI6IkNvbnRlbnRBdXRoWiIsImV4cCI6MTc4MDY0NTYxMSwiZGV2aWNlIjp7IndhdGVybWFya2luZyI6dHJ1ZSwiYWNjb3VudElkIjoiNDc0NTY1In19.IJeHoAMSx0Put0N-V8ESk_O6U3uPWRbWPETy7X-jpJY";
         var detectedIdentity = "com.android.chrome";
