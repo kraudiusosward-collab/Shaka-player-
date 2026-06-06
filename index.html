@@ -3,312 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream Player</title>
-    <!-- Tunatumia CDN ya uhakika zaidi ya Clappr na HLS.js support -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <title>Live Stream Player - Fixed</title>
+    
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+
     <style>
-        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; }
-        #player { width: 100vw; height: 100vh; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; }
+        .video-js { width: 100vw !important; height: 100vh !important; }
     </style>
 </head>
 <body>
-<div id="player"></div>
+
+    <video id="my-video" class="video-js vjs-default-skin" crossorigin="anonymous" playsinline></video>
 
 <script>
-    var player = new Clappr.Player({
-        source: "http://imediatv666.store:7777/live/Norma11/XGSYSF/162739.m3u8",
-        parentId: "#player",
-        width: '100%',
-        height: '100%',
-        autoPlay: true,
-        mute: true, // Browser nyingi huzuia autoPlay kama sauti ipo on.
+    // Link yako ya moja kwa moja
+    var streamUrl = "http://imediatv666.store:7777/live/Norma11/XGSYSF/162739.m3u8";
+
+    // Kuanzisha player ya Video.js
+    var player = videojs('my-video', {
+        controls: true,
+        autoplay: true,
         preload: 'auto',
-        playback: {
-            hlsjsConfig: {
-                // Hii inasaidia kama server inahitaji utambulisho maalum
-                xhrSetup: function(xhr, url) {
-                    xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36');
-                }
+        muted: true, // Muhimu ili kuzuia browser isibloque autoplay
+        fluid: false,
+        html5: {
+            vhs: {
+                overrideNative: true // Hii inalazimisha browser kutumia engine ya ndani kucheza m3u8 bila kujali vikwazo vya kawaida
             }
-        },
-        // Inasaidia kuzuia matatizo ya Flash au HTML5 kulingana na browser
-        plugins: {
-            playback: [Clappr.HLS]
         }
     });
 
-    // Ili kuanzisha sauti baada ya video kuanza
-    player.on(Clappr.Events.PLAYER_PLAY, function() {
-        player.setVolume(100);
+    // Weka source ya video
+    player.src({
+        src: streamUrl,
+        type: 'application/x-mpegURL'
+    });
+
+    // Sauti irudi mara tu video ikianza kucheza yenyewe
+    player.ready(function() {
+        player.play().then(function() {
+            player.muted(false); // Washa sauti
+            player.volume(1.0);  // Sauti iwe juu 100%
+        }).catch(function(error) {
+            console.log("Autoplay ilizuiliwa, mtumiaji anapaswa kubonyeza play: ", error);
+        });
     });
 </script>
 </body>
-</html>1600afc33799ecac543331803f2:dd2101530e222f545997d4c553787f85";
-        var licenseUrl = "https://azy4sj9b.anycast.nagra.com/AZY4SJ9B/wvls/contentlicenseservice/v1/licenses";
-        var authToken = "eyJraWQiOiI3NzUwOTAiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ2ZXIiOiIxLjAiLCJjb250ZW50UmlnaHRzIjpbeyJjb250ZW50SWQiOiJDSC0zOTc0YzJjZC05ZWM0LTRkMDMtODJiMS05Yzk5Mzk3M2U0ODciLCJzdGFydCI6IjIwMjUtMDMtMzFUMDA6MDA6MDBaIiwiZW5kIjoiMjAzMC0wMi0xOVQwMDowMDowMFoiLCJ1c2FnZVJ1bGVzUHJvZmlsZUlkIjoiVGVzdCJ9XSwidGVuYW50SWQiOiJBWlk0U0o5QiIsInR5cCI6IkNvbnRlbnRBdXRoWiIsImV4cCI6MTc4MDY0NTYxMSwiZGV2aWNlIjp7IndhdGVybWFya2luZyI6dHJ1ZSwiYWNjb3VudElkIjoiNDc0NTY1In19.IJeHoAMSx0Put0N-V8ESk_O6U3uPWRbWPETy7X-jpJY";
-        var detectedIdentity = "com.android.chrome";
-        var mpingoApiKey = "5b2f3e89d551c9f5834dbf1ed8aaf1a4f2d2be4b1e4a254b2529186d037a";
-
-        function showControls() {
-            overlay.classList.remove('controls-hidden');
-            document.body.style.cursor = 'default';
-            clearTimeout(controlsTimeout);
-            if (!video.paused && document.getElementById('settingsMenu').classList.contains('hidden')) {
-                controlsTimeout = setTimeout(hideControls, 3000);
-            }
-        }
-
-        function hideControls() {
-            overlay.classList.add('controls-hidden');
-            document.body.style.cursor = 'none';
-        }
-
-        document.addEventListener('mousemove', showControls);
-        document.addEventListener('touchstart', showControls);
-        video.addEventListener('play', showControls);
-
-        window.onload = function() {
-            if (!streamUrl) {
-                showError("Stream not available. Channel might be inactive.");
-                return;
-            }
-            startPlayback(streamUrl, clearKey, streamType);
-            showControls();
-        };
-
-        function startPlayback(url, clearkey, type) {
-            document.getElementById('loadingIndicator').classList.remove('hidden');
-            var playbackPromise;
-            if (type === 'hls' || url.indexOf('.m3u8') !== -1) {
-                playbackPromise = playHLS(url);
-            } else {
-                playbackPromise = playMPD(url, clearkey);
-            }
-
-            if (playbackPromise && playbackPromise.then) {
-                playbackPromise.then(function() {
-                    document.getElementById('loadingIndicator').classList.add('hidden');
-                })['catch'](function(e) {
-                    showError("Playback Error: " + (e.message || e.code || "Unknown"), url);
-                });
-            } else {
-                document.getElementById('loadingIndicator').classList.add('hidden');
-            }
-        }
-
-        function playHLS(url) {
-            if (window.Hls && Hls.isSupported()) {
-                hls = new Hls({
-                    xhrSetup: function(xhr, xhrUrl) {
-                        // ONLY send security headers to OUR domain.
-                        if (xhrUrl.indexOf('mpingotv.com') !== -1) {
-                            xhr.setRequestHeader('X-Requested-With', detectedIdentity);
-                            xhr.setRequestHeader('Authorization', 'Bearer ' + mpingoApiKey);
-                        }
-                    }
-                });
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
-                return { then: function(cb) { cb(); return { 'catch': function(c) { 
-                    hls.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) c(data); });
-                } }; } };
-            } else {
-                video.src = url;
-                video.play();
-                return { then: function(cb) { cb(); return { 'catch': function() {} }; } };
-            }
-        }
-
-        function playMPD(url, clearkey) {
-            if (!window.shaka || !shaka.Player.isBrowserSupported()) {
-                showError("DASH not supported by this browser.");
-                return null;
-            }
-
-            shakaPlayer = new shaka.Player(video);
-            shakaPlayer.getNetworkingEngine().registerRequestFilter(function(type, request) {
-                if (request.uris[0].indexOf('mpingotv.com') !== -1) {
-                    request.headers['X-Requested-With'] = detectedIdentity;
-                    request.headers['Authorization'] = 'Bearer ' + mpingoApiKey;
-                }
-                
-                // Set nv-authorizations header for Widevine DRM license requests
-                if (type == shaka.net.NetworkingEngine.RequestType.LICENSE && authToken) {
-                    request.headers['nv-authorizations'] = authToken;
-                }
-            });
-            
-            if (licenseUrl && authToken) {
-                var drmConfig = {
-                    servers: {
-                        'com.widevine.alpha': licenseUrl
-                    }
-                };
-                shakaPlayer.configure({
-                    drm: drmConfig
-                });
-            } else if (clearkey) {
-                var config = { drm: { clearKeys: {} } };
-                if (clearkey.indexOf(':') !== -1) {
-                    var parts = clearkey.split(':');
-                    config.drm.clearKeys[parts[0]] = parts[1];
-                }
-                shakaPlayer.configure(config);
-            }
-
-            return shakaPlayer.load(url.trim()).then(function() {
-                video.play();
-            });
-        }
-
-        function togglePlayPause() {
-            if (video.paused) {
-                video.play();
-                playIcon.classList.add('hidden');
-                pauseIcon.classList.remove('hidden');
-            } else {
-                video.pause();
-                playIcon.classList.remove('hidden');
-                pauseIcon.classList.add('hidden');
-                showControls();
-            }
-        }
-
-        function rotateVideo() {
-            rotateAngle = (rotateAngle + 90) % 360;
-            video.className = 'w-full h-full object-contain';
-            if (rotateAngle === 90) video.classList.add('rotate-90');
-            else if (rotateAngle === 180) video.classList.add('rotate-180');
-            else if (rotateAngle === 270) video.classList.add('rotate-270');
-        }
-
-        function toggleFullscreen() {
-            try {
-                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-                    else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                }
-            } catch (e) {}
-        }
-
-        function toggleMute() {
-            video.muted = !video.muted;
-            volumeBar.value = video.muted ? 0 : video.volume;
-            updateVolumeIcons();
-        }
-
-        function updateVolumeIcons() {
-            if (video.muted || video.volume === 0) {
-                document.getElementById('volumeIcon').classList.add('hidden');
-                document.getElementById('muteIcon').classList.remove('hidden');
-            } else {
-                document.getElementById('volumeIcon').classList.remove('hidden');
-                document.getElementById('muteIcon').classList.add('hidden');
-            }
-        }
-
-        function openSettingsMenu(e) {
-            if (e && e.stopPropagation) e.stopPropagation();
-            var menu = document.getElementById('settingsMenu');
-            menu.classList.toggle('hidden');
-            if (!menu.classList.contains('hidden')) {
-                populateQuality();
-                populateAudio();
-            }
-        }
-
-        function closeSettingsMenu() {
-            document.getElementById('settingsMenu').classList.add('hidden');
-            showControls();
-        }
-
-        video.addEventListener('timeupdate', function() {
-            var perc = (video.currentTime / video.duration) * 100;
-            progressBar.value = perc || 0;
-            currentTimeText.textContent = formatTime(video.currentTime);
-            durationText.textContent = formatTime(video.duration);
-        });
-
-        progressBar.addEventListener('input', function() {
-            video.currentTime = (progressBar.value / 100) * video.duration;
-        });
-
-        volumeBar.addEventListener('input', function() {
-            video.volume = volumeBar.value;
-            video.muted = (video.volume === 0);
-            updateVolumeIcons();
-        });
-
-        function formatTime(s) {
-            if (isNaN(s)) return "00:00";
-            var h = Math.floor(s / 3600);
-            var m = Math.floor((s % 3600) / 60);
-            var sec = Math.floor(s % 60);
-            return (h > 0 ? h + ":" : "") + (m < 10 ? "0" + m : m) + ":" + (sec < 10 ? "0" + sec : sec);
-        }
-
-        function populateQuality() {
-            var div = document.getElementById('qualityLevels');
-            div.innerHTML = '';
-            if (shakaPlayer) {
-                var tracks = shakaPlayer.getVariantTracks();
-                var seenHeights = {};
-                tracks.sort(function(a, b) { return b.height - a.height; }).forEach(function(t) {
-                    if (!seenHeights[t.height]) {
-                        seenHeights[t.height] = true;
-                        var btn = document.createElement('button');
-                        btn.className = "text-left px-3 py-2 text-[10px] hover:bg-white/10 rounded-lg transition";
-                        btn.innerHTML = '<span class="opacity-50 min-w-[30px] inline-block">' + t.height + 'p</span> <span class="ml-2 font-mono text-blue-400">Stream</span>';
-                        btn.onclick = function() { 
-                            shakaPlayer.configure({ abr: { enabled: false } });
-                            shakaPlayer.selectVariantTrack(t, true); 
-                            closeSettingsMenu(); 
-                        };
-                        div.appendChild(btn);
-                    }
-                });
-            } else {
-                div.innerHTML = '<div class="text-[10px] text-gray-500 italic px-2">Auto Quality</div>';
-            }
-        }
-
-        function populateAudio() {
-            var div = document.getElementById('audioTracks');
-            div.innerHTML = '';
-            if (shakaPlayer) {
-                shakaPlayer.getAudioLanguages().forEach(function(lang) {
-                    var btn = document.createElement('button');
-                    btn.className = "text-left px-3 py-2 text-[10px] hover:bg-white/10 rounded-lg transition capitalize";
-                    btn.textContent = lang;
-                    btn.onclick = function() { shakaPlayer.selectAudioLanguage(lang); closeSettingsMenu(); };
-                    div.appendChild(btn);
-                });
-            } else {
-                div.innerHTML = '<div class="text-[10px] text-gray-500 italic px-2">Default Audio</div>';
-            }
-        }
-
-        function showError(msg, manifestUrl) {
-            document.getElementById('loadingIndicator').classList.add('hidden');
-            var errorDisplay = document.getElementById('errorDisplay');
-            var errorMessage = document.getElementById('errorMessage');
-            errorDisplay.classList.remove('hidden');
-            
-            var identityHtml = '<div class="bg-red-500/10 border border-red-500/20 p-5 rounded-xl mb-4 text-left">' +
-                '<p class="text-red-400 text-xs mb-3 font-mono">' + String(msg) + '</p>' +
-                '<div class="pt-4 border-t border-white/5">' +
-                    '<p class="text-gray-500 text-[9px] uppercase font-black mb-1">Detected ID:</p>' +
-                    '<p class="text-blue-400 font-mono text-xs break-all bg-black/40 p-2 rounded">' + (detectedIdentity || "Unidentified") + '</p>' +
-                '</div>' +
-            '</div>' +
-            '<p class="text-[10px] text-gray-500 italic">This content is restricted to authorized apps only.</p>';
-            errorMessage.innerHTML = identityHtml;
-        }
-    </script>
-  <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;7c19582a1c9b4275b98b03748066b273&quot;,&quot;r&quot;:1,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
- </body>
 </html>
