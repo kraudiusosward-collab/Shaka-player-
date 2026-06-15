@@ -1,132 +1,644 @@
 <!doctype html>
 <html lang="en">
  <head>
-  <script defer data-preview-inject="true" data-app-id="69e2510f5a99ce09581b1576" data-preview-type="latest_preview" data-rum-app-id="db50c921-10c3-4f12-bccb-950fa174b708" data-rum-client-token="pubfe8a4f2972b412b4556fd67e77f82cb4" data-dd-site="datadoghq.com" src="https://app.base44.com/builder-bridge.js?t=1781329024"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azam Sport2 HD - Player</title>
+  <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <script src="assets/js/no-debug.js?v=1.2.2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+  <style>
+        body { background-color: #000; margin: 0; overflow: hidden; }
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #controlsOverlay { transition: opacity 0.5s ease-in-out; }
+        .controls-hidden { opacity: 0; pointer-events: none; cursor: none; }
+        .rotate-90 { transform: rotate(90deg) scale(1.5); }
+        .rotate-180 { transform: rotate(180deg); }
+        .rotate-270 { transform: rotate(270deg) scale(1.5); }
+        #videoPlayer { transition: transform 0.3s ease; }
+        
+        /* Trial Timer Styles */
+        .trial-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .trial-banner.warning {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .trial-timer {
+            font-size: 24px;
+            font-weight: 800;
+            font-family: monospace;
+        }
+        .trial-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .trial-btn {
+            background: white;
+            color: #d97706;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .trial-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Trial Expired Modal */
+        .trial-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .trial-modal-content {
+            background: linear-gradient(135deg, #1e1e32 0%, #0f0f1a 100%);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: scaleIn 0.3s ease;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        .modal-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 12px;
+        }
+        .modal-text {
+            color: #a0a0c0;
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .modal-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+        .modal-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+ </head>
+ <body class="h-screen w-screen relative group">
+  <div id="playerContainer" class="fixed inset-0 flex items-center justify-center bg-black overflow-hidden" style="">
+   <video id="videoPlayer" class="w-full h-full object-contain" autoplay playsinline></video>
+   <div id="loadingIndicator" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0f0f1a] z-[200] transition-opacity duration-1000">
+    <div class="mb-8 relative">
+     <div class="w-24 h-24 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+     <div class="absolute inset-0 flex items-center justify-center">
+      <svg class="w-10 h-10 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+     </div>
+    </div>
+    <h2 class="text-white font-bold text-xl tracking-widest uppercase mb-2">LOADING CHANNEL</h2>
+    <div class="text-indigo-400 text-xs font-medium animate-pulse">Loading Azam Sport2 HD...</div>
+   </div>
+   <div id="errorDisplay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center z-[100]">
+    <h2 id="errorTitle" class="text-xl text-white mb-2 font-bold">Playback Error</h2>
+    <div id="errorMessage" class="max-w-md"></div>
+    <button onclick="location.reload()" class="mt-6 px-8 py-2 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition">Try Again</button>
+   </div>
+   <div id="controlsOverlay" class="absolute inset-0 flex flex-col justify-between">
+    <div class="p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-start">
+     <div class="flex items-center space-x-3">
+      <button onclick="window.history.back()" class="p-2 hover:bg-white/10 rounded-full transition">
+       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+       </svg>
+      </button>
+      <div>
+       <h1 id="streamName" class="text-white font-bold text-sm md:text-base leading-tight flex items-center gap-2">Azam Sport2 HD <span id="liveBadge" class="hidden bg-red-600 text-[8px] px-1.5 py-0.5 rounded-full animate-pulse uppercase tracking-widest font-black">LIVE</span></h1>
+      </div>
+     </div>
+    </div>
+    <div class="p-2 md:p-6 bg-gradient-to-t from-black/90 to-transparent">
+     <div class="flex flex-col space-y-4">
+      <div class="flex items-center space-x-3 w-full group/seek">
+       <span id="currentTime" class="text-white font-mono text-[10px] opacity-70">00:00</span> <input type="range" id="progressBar" class="flex-grow h-1 accent-blue-500 bg-white/20 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="0" step="0.1"> <span id="duration" class="text-white font-mono text-[10px] opacity-70">00:00</span>
+      </div>
+      <div class="flex items-center justify-between">
+       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <button onclick="togglePlayPause()" class="pointer-events-auto bg-black/40 hover:bg-black/60 p-6 rounded-full transition-all transform active:scale-90 group">
+         <svg id="playIcon" class="h-16 w-16 text-white hidden" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+         </svg>
+         <svg id="pauseIcon" class="h-16 w-16 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+         </svg>
+        </button>
+       </div>
+       <div class="flex items-center group/vol space-x-3">
+        <button onclick="toggleMute()" class="text-white hover:opacity-80 transition">
+         <svg id="volumeIcon" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+         </svg>
+         <svg id="muteIcon" class="h-6 w-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+         </svg>
+        </button>
+        <input type="range" id="volumeBar" class="w-20 md:w-24 h-1 accent-white appearance-none bg-white/20 rounded cursor-pointer" min="0" max="1" value="1" step="0.1">
+       </div>
+       <div class="flex items-center space-x-4 md:space-x-6">
+        <button onclick="openSettingsMenu(event)" class="text-white hover:rotate-90 transition duration-500 p-2 hover:bg-white/10 rounded-full">
+         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" />
+         </svg>
+        </button>
+        <button onclick="rotateVideo()" class="text-white hover:scale-110 p-2 hover:bg-white/10 rounded-full transition">
+         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+         </svg>
+        </button>
+        <button onclick="toggleFullscreen()" class="text-white hover:scale-110 p-2 hover:bg-white/10 rounded-full transition">
+         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M4 8V4m0 0h4M4 4l5 5m11-1v4m0 0h-4m4-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v-4m0 0h-4m4 4l-5-5" />
+         </svg>
+        </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="settingsMenu" class="hidden absolute bottom-24 right-4 glass-panel rounded-xl p-5 w-64 max-h-[60vh] overflow-y-auto text-white z-50 shadow-2xl">
+    <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
+     <span class="font-bold text-xs uppercase tracking-widest text-blue-400">Settings</span>
+     <button onclick="closeSettingsMenu()" class="p-1 hover:bg-white/10 rounded-full transition">
+      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+       <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+      </svg>
+     </button>
+    </div>
+    <div class="space-y-6">
+     <div>
+      <h4 class="text-[9px] uppercase text-gray-500 font-black mb-3 tracking-tighter">Resolution</h4>
+      <div id="qualityLevels" class="flex flex-col space-y-1"></div>
+     </div>
+     <div>
+      <h4 class="text-[9px] uppercase text-gray-500 font-black mb-3 tracking-tighter">Audio Language</h4>
+      <div id="audioTracks" class="flex flex-col space-y-1"></div>
+     </div>
+    </div>
+   </div>
+  </div>
   <script>
-    (function() {
-        var IGNORE = { SCRIPT: 1, STYLE: 1, LINK: 1, META: 1, NOSCRIPT: 1, TEMPLATE: 1 };
-        const fire = () => window.parent.postMessage({ type: 'IFRAME_CONTENT_READY' }, '*');
-        function check() {
-            var body = document.body;
-            if (!body) return false;
-            for (var idx = 0; idx < body.children.length; idx++) {
-                if (!IGNORE[body.children[idx].tagName]) return true;
+        var shakaPlayer = null;
+        var hls = null;
+        var video = document.getElementById('videoPlayer');
+        var overlay = document.getElementById('controlsOverlay');
+        var playIcon = document.getElementById('playIcon');
+        var pauseIcon = document.getElementById('pauseIcon');
+        var currentTimeText = document.getElementById('currentTime');
+        var durationText = document.getElementById('duration');
+        var progressBar = document.getElementById('progressBar');
+        var volumeBar = document.getElementById('volumeBar');
+        
+        var rotateAngle = 0;
+        var controlsTimeout;
+        var streamUrl = "https://cdnedgch2.azamtvltd.co.tz:443/tok_eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNzgxNTQ2NTU4Iiwic2lwIjoiIiwicGF0aCI6IiIsInNlc3Npb25fY2RuX2lkIjoiZWJiNTgwNjg4ZTIwZjk5MCIsInNlc3Npb25faWQiOiIiLCJjbGllbnRfaWQiOiI0NzQ1NjUiLCJkZXZpY2VfaWQiOiIiLCJtYXhfc2Vzc2lvbnMiOjAsInNlc3Npb25fZHVyYXRpb24iOjAsInVybCI6Imh0dHBzOi8vMTAyLjIwOC4yNDQuOSIsInNlc3Npb25fdGltZW91dCI6MCwiYXVkIjoiNyIsInNvdXJjZXMiOlszXX0=.Y_e7gieUZc_H1uau6Q8lZIBCceJzveQmYgv6kX01z_eQiIWAbIaIHEyk-psWad5M4Uqn2Ab-iMTImV9i_S2n4A==/live/eds/AzamSport2/DASH/AzamSport2.mpd";
+        var streamType = "mpd";
+        var clearKey = "739e7499125b31cc9948da8057b84cf9:1b7d44d798c351acc02f33ddfbb7682a";
+        var detectedIdentity = "com.watu";
+        var mpingoApiKey = "5b2f3e89d551c9f5834dbf1ed8aaf1a4f2d2be4b1e4a254b2529186d037a";
+        
+        // Trial Mode Variables
+        var isTrialMode = false;
+        var trialSeconds = 60;
+        var trialTimer = null;
+                function showControls() {
+            overlay.classList.remove('controls-hidden');
+            document.body.style.cursor = 'default';
+            clearTimeout(controlsTimeout);
+            if (!video.paused && document.getElementById('settingsMenu').classList.contains('hidden')) {
+                controlsTimeout = setTimeout(hideControls, 3000);
             }
-            return false;
         }
-        function start() {
-            if (check()) { fire(); return; }
-            var observer = new MutationObserver(function() {
-                if (check()) { fire(); observer.disconnect(); }
-            });
-            observer.observe(document.documentElement, { childList: true, subtree: true });
+        function hideControls() {
+            overlay.classList.add('controls-hidden');
+            document.body.style.cursor = 'none';
         }
-        if (document.body) { start(); }
-        else { document.addEventListener('DOMContentLoaded', start, { once: true }); }
-    })();
-    </script>
-  <script>
-    (function() {
-        if (window.self === window.top) return;
-        var APP_ID = "69e2510f5a99ce09581b1576";
-        var PREVIEW_TYPE = "latest_preview";
-        var on404 = false;
-        var booted = false;
-        function detect() { return !!document.querySelector('[data-source-location^="PageNotFound:"]'); }
-        function payload() { return { app_id: APP_ID, preview_type: PREVIEW_TYPE, url_path: window.location.pathname }; }
-        function tick() {
-            var now = detect();
-            if (now && !on404) {
-                on404 = true;
-                window.parent.postMessage({ type: 'PREVIEW_PAGE_NOT_FOUND', payload: payload() }, '*');
-            } else if (!now && (on404 || !booted)) {
-                // On first tick of a fresh document, emit a cleared signal even when
-                // not currently on a 404 — the parent may have latched is404=true from
-                // a previous document at the same URL (e.g. after an iframe reload).
-                on404 = false;
-                window.parent.postMessage({ type: 'PREVIEW_PAGE_NOT_FOUND_CLEARED', payload: payload() }, '*');
+        document.addEventListener('mousemove', showControls);
+        document.addEventListener('touchstart', showControls);
+        video.addEventListener('play', showControls);
+        window.onload = function() {
+            if (!streamUrl) {
+                showError("Stream not available. Channel might be inactive.");
+                return;
             }
-            booted = true;
+            
+            // SAVE TO HISTORY (Continue Watching)
+            localStorage.setItem('nurhd_last_watched', JSON.stringify({
+                id: 2,
+                name: "Azam Sport2 HD",
+                thumbnail: "",
+                bgColor: "#ffff00"
+            }));
+            startPlayback(streamUrl, clearKey, streamType);
+            showControls();
+            
+                    };
+        function startPlayback(url, clearkey, type) {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            var playbackPromise;
+            if (type === 'hls' || url.indexOf('.m3u8') !== -1) {
+                playbackPromise = playHLS(url);
+            } else {
+                playbackPromise = playMPD(url, clearkey);
+            }
+            if (playbackPromise && playbackPromise.then) {
+                playbackPromise.then(function() {
+                    setTimeout(() => {
+                        document.getElementById('loadingIndicator').classList.add('opacity-0');
+                        setTimeout(() => {
+                            document.getElementById('loadingIndicator').classList.add('hidden');
+                        }, 1000);
+                    }, 500);
+                })['catch'](function(e) {
+                    showError("Playback Error: " + (e.message || e.code || "Unknown"), url);
+                });
+            } else {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
         }
-        function start() {
-            tick();
-            new MutationObserver(tick).observe(document.body, { childList: true, subtree: true });
+        function playHLS(url) {
+            if (window.Hls && Hls.isSupported()) {
+                hls = new Hls({
+                    xhrSetup: function(xhr, xhrUrl) {
+                        if (xhrUrl.indexOf('mpingotv.com') !== -1) {
+                            xhr.setRequestHeader('X-Requested-With', detectedIdentity);
+                            xhr.setRequestHeader('Authorization', 'Bearer ' + mpingoApiKey);
+                        }
+                        
+                        // AzamTV/Nagra headers for HLS too if needed
+                        var useNagraHeaders = false;
+                        if (useNagraHeaders) {
+                            xhr.setRequestHeader('User-Agent', 'ReactNativeVideo/4.6 (Linux;Android 11) ExoPlayerLib/2.13.3');
+                            xhr.setRequestHeader('Referer', 'app.azamtvmax.com');
+                            xhr.setRequestHeader('Origin', 'app.azamtvmax.com');
+                            xhr.setRequestHeader('Connection', 'Keep-Alive');
+                        }
+                    }
+                });
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                return { then: function(cb) { cb(); return { 'catch': function(c) { 
+                    hls.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) c(data); });
+                } }; } };
+            } else {
+                video.src = url;
+                video.play();
+                return { then: function(cb) { cb(); return { 'catch': function() {} }; } };
+            }
         }
-        if (document.body) { start(); }
-        else { document.addEventListener('DOMContentLoaded', start, { once: true }); }
-    })();
-    </script>
-  <script>
-    (function() {
-        if (window.self === window.top) return;
-        function postUnsupported(reason) {
-            window.parent.postMessage({
-                type: 'IFRAME_FIRST_CONTENTFUL_PAINT_UNSUPPORTED',
-                payload: { reason: reason, userAgent: navigator.userAgent }
-            }, '*');
-        }
-        if (typeof PerformanceObserver === 'undefined') {
-            postUnsupported('no_performance_observer');
-            return;
-        }
-        try {
-            var obs = new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                for (var i = 0; i < entries.length; i++) {
-                    if (entries[i].name === 'first-contentful-paint') {
-                        obs.disconnect();
-                        window.parent.postMessage({ type: 'IFRAME_FIRST_CONTENTFUL_PAINT' }, '*');
-                        return;
+        function playMPD(url, clearkey) {
+            if (!window.shaka || !shaka.Player.isBrowserSupported()) {
+                showError("DASH not supported by this browser.");
+                return null;
+            }
+            shakaPlayer = new shaka.Player(video);
+            
+            var useNagraHeaders = false;
+            
+            shakaPlayer.getNetworkingEngine().registerRequestFilter(function(type, request) {
+                // MPINGO API Headers (Always applied if URL matches)
+                if (request.uris[0].indexOf('mpingotv.com') !== -1) {
+                    request.headers['X-Requested-With'] = detectedIdentity;
+                    request.headers['Authorization'] = 'Bearer ' + mpingoApiKey;
+                }
+                
+                // AzamTV/Nagra Specific Headers (Conditional)
+                if (useNagraHeaders) {
+                    // Standard Headers for AzamTV/Nagra
+                    request.headers['User-Agent'] = 'ReactNativeVideo/4.6 (Linux;Android 11) ExoPlayerLib/2.13.3';
+                    request.headers['Referer'] = 'app.azamtvmax.com';
+                    request.headers['Origin'] = 'app.azamtvmax.com';
+                    request.headers['Connection'] = 'Keep-Alive';
+                    
+                    // License specific headers (DRM)
+                    if (type == shaka.net.NetworkingEngine.RequestType.LICENSE) {
+                        request.headers['Accept'] = 'application/octet-stream';
+                        request.headers['Accept-Encoding'] = 'gzip';
+                        request.headers['Content-Type'] = 'application/octet-stream';
+                        request.headers['nv-tenant-id'] = 'AZY4SJ9B';
+                        request.headers['nv-authorizations'] = "";
                     }
                 }
             });
-            obs.observe({ type: 'paint', buffered: true });
-        } catch (e) {
-            postUnsupported('observe_threw:' + (e && e.name ? e.name : 'Error'));
+            
+            var config = {
+                drm: {
+                    servers: {
+                        'com.widevine.alpha': "https://azy4sj9b.anycast.nagra.com/AZY4SJ9B/wvls/contentlicenseservice/v1/licenses"
+                    }
+                }
+            };
+            
+            if (clearkey) {
+                config.drm.clearKeys = {};
+                if (clearkey.indexOf(':') !== -1) {
+                    var parts = clearkey.split(':');
+                    config.drm.clearKeys[parts[0]] = parts[1];
+                }
+            }
+            
+            shakaPlayer.configure(config);
+            return shakaPlayer.load(url.trim()).then(function() {
+                video.play();
+            });
         }
-    })();
+        function togglePlayPause() {
+            if (video.paused) {
+                video.play();
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            } else {
+                video.pause();
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                showControls();
+            }
+        }
+        function rotateVideo() {
+            rotateAngle = (rotateAngle + 90) % 360;
+            video.className = 'w-full h-full object-contain';
+            if (rotateAngle === 90) video.classList.add('rotate-90');
+            else if (rotateAngle === 180) video.classList.add('rotate-180');
+            else if (rotateAngle === 270) video.classList.add('rotate-270');
+        }
+        function toggleFullscreen() {
+            try {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                    else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                }
+            } catch (e) {}
+        }
+        function toggleMute() {
+            video.muted = !video.muted;
+            volumeBar.value = video.muted ? 0 : video.volume;
+            updateVolumeIcons();
+        }
+        function updateVolumeIcons() {
+            if (video.muted || video.volume === 0) {
+                document.getElementById('volumeIcon').classList.add('hidden');
+                document.getElementById('muteIcon').classList.remove('hidden');
+            } else {
+                document.getElementById('volumeIcon').classList.remove('hidden');
+                document.getElementById('muteIcon').classList.add('hidden');
+            }
+        }
+        function openSettingsMenu(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            var menu = document.getElementById('settingsMenu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                populateQuality();
+                populateAudio();
+            }
+        }
+        function closeSettingsMenu() {
+            document.getElementById('settingsMenu').classList.add('hidden');
+            showControls();
+        }
+        video.addEventListener('timeupdate', function() {
+            // Check if it's a live stream (Large duration or Infinity)
+            var isLive = (video.duration === Infinity) || 
+                         (shakaPlayer && shakaPlayer.isLive()) ||
+                         (hls && hls.liveSyncPosition) ||
+                         (video.duration > 86400 * 30); // 30 days is likely live timestamp
+            var liveBadge = document.getElementById('liveBadge');
+            
+            if (isLive) {
+                if (liveBadge) liveBadge.classList.remove('hidden');
+                
+                // Professional LIVE indicator in timer area
+                currentTimeText.innerHTML = `
+                    <div class="flex items-center gap-1.5 bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded-md text-[9px] font-bold tracking-tight">
+                        <span class="relative flex h-1.5 w-1.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                        </span>
+                        LIVE
+                    </div>
+                `;
+                durationText.textContent = '';
+                progressBar.classList.add('invisible');
+                return;
+            }
+            if (liveBadge) liveBadge.classList.add('hidden');
+            progressBar.classList.remove('invisible');
+            
+            var perc = (video.currentTime / video.duration) * 100;
+            progressBar.value = perc || 0;
+            currentTimeText.textContent = formatTime(video.currentTime);
+            durationText.textContent = formatTime(video.duration);
+        });
+        progressBar.addEventListener('input', function() {
+            video.currentTime = (progressBar.value / 100) * video.duration;
+        });
+        volumeBar.addEventListener('input', function() {
+            video.volume = volumeBar.value;
+            video.muted = (video.volume === 0);
+            updateVolumeIcons();
+        });
+        function formatTime(s) {
+            if (isNaN(s) || s === Infinity || s > 86400 * 30) return "00:00";
+            var h = Math.floor(s / 3600);
+            var m = Math.floor((s % 3600) / 60);
+            var sec = Math.floor(s % 60);
+            return (h > 0 ? h + ":" : "") + (m < 10 ? "0" + m : m) + ":" + (sec < 10 ? "0" + sec : sec);
+        }
+        function populateQuality() {
+            var div = document.getElementById('qualityLevels');
+            div.innerHTML = '';
+            if (shakaPlayer) {
+                var tracks = shakaPlayer.getVariantTracks();
+                var seenHeights = {};
+                tracks.sort(function(a, b) { return b.height - a.height; }).forEach(function(t) {
+                    if (!seenHeights[t.height]) {
+                        seenHeights[t.height] = true;
+                        var btn = document.createElement('button');
+                        btn.className = "text-left px-3 py-2 text-[10px] hover:bg-white/10 rounded-lg transition";
+                        btn.innerHTML = '<span class="opacity-50 min-w-[30px] inline-block">' + t.height + 'p</span> <span class="ml-2 font-mono text-blue-400">Stream</span>';
+                        btn.onclick = function() { 
+                            shakaPlayer.configure({ abr: { enabled: false } });
+                            shakaPlayer.selectVariantTrack(t, true); 
+                            closeSettingsMenu(); 
+                        };
+                        div.appendChild(btn);
+                    }
+                });
+            } else {
+                div.innerHTML = '<div class="text-[10px] text-gray-500 italic px-2">Auto Quality</div>';
+            }
+        }
+        function populateAudio() {
+            var div = document.getElementById('audioTracks');
+            div.innerHTML = '';
+            
+            var langMap = {
+                'sw': 'Kiswahili',
+                'swa': 'Kiswahili',
+                'en': 'English',
+                'eng': 'English',
+                'ny': 'Chichewa',
+                'nya': 'Chichewa',
+                'rw': 'Kinyarwanda',
+                'rwa': 'Kinyarwanda',
+                'lg': 'Luganda',
+                'lug': 'Luganda',
+                'so': 'Somali',
+                'som': 'Somali',
+                'am': 'Amharic',
+                'amh': 'Amharic',
+                'fr': 'Français',
+                'fra': 'Français',
+                'fre': 'Français',
+                'es': 'Español',
+                'spa': 'Español',
+                'ar': 'العربية',
+                'ara': 'العربية',
+                'pt': 'Português',
+                'por': 'Português',
+                'de': 'Deutsch',
+                'deu': 'Deutsch',
+                'ger': 'Deutsch',
+                'it': 'Italiano',
+                'ita': 'Italiano'
+            };
+            if (shakaPlayer) {
+                shakaPlayer.getAudioLanguages().forEach(function(lang) {
+                    var btn = document.createElement('button');
+                    btn.className = "text-left px-3 py-2 text-[10px] hover:bg-white/10 rounded-lg transition capitalize";
+                    
+                    var code = lang.split('-')[0].toLowerCase().trim();
+                    var langName = langMap[lang.toLowerCase()] || langMap[code];
+                    
+                    if (!langName) {
+                        // Try native Intl.DisplayNames translation
+                        try {
+                            var displayNames = new Intl.DisplayNames([code], { type: 'language' });
+                            var name = displayNames.of(code);
+                            if (name && name !== code) {
+                                langName = name.charAt(0).toUpperCase() + name.slice(1);
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    if (!langName) {
+                        // Try English Intl.DisplayNames translation
+                        try {
+                            var displayNamesEn = new Intl.DisplayNames(['en'], { type: 'language' });
+                            var nameEn = displayNamesEn.of(code);
+                            if (nameEn && nameEn !== code) {
+                                langName = nameEn.charAt(0).toUpperCase() + nameEn.slice(1);
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    if (!langName) {
+                        // Fallback to original capitalized code
+                        langName = lang.toUpperCase();
+                    }
+                    
+                    btn.textContent = langName;
+                    btn.onclick = function() { shakaPlayer.selectAudioLanguage(lang); closeSettingsMenu(); };
+                    div.appendChild(btn);
+                });
+            } else {
+                div.innerHTML = '<div class="text-[10px] text-gray-500 italic px-2">Default Audio</div>';
+            }
+        }
+        function showError(msg, manifestUrl) {
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            var errorDisplay = document.getElementById('errorDisplay');
+            var errorMessage = document.getElementById('errorMessage');
+            errorDisplay.classList.remove('hidden');
+            
+            var identityHtml = '<div class="bg-red-500/10 border border-red-500/20 p-5 rounded-xl mb-4 text-left">' +
+                '<p class="text-red-400 text-xs mb-3 font-mono">' + String(msg) + '</p>' +
+                '<div class="pt-4 border-t border-white/5">' +
+                    '<p class="text-gray-500 text-[9px] uppercase font-black mb-1">Detected ID:</p>' +
+                    '<p class="text-blue-400 font-mono text-xs break-all bg-black/40 p-2 rounded">' + (detectedIdentity || "Unidentified") + '</p>' +
+                '</div>' +
+            '</div>' +
+            '<p class="text-[10px] text-gray-500 italic">This content is restricted to authorized apps only.</p>';
+            errorMessage.innerHTML = identityHtml;
+        }
     </script>
-  <meta charset="UTF-8">
-  <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="/manifest.json">
-  <title>Base44 APP</title>
-  <script type="module" crossorigin src="/assets/index-Dw-CWgM0.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DKgjqYeC.css">
-  <script type="module">
-if (window.self === window.top) {
-  let lastPath = "";
-  function getPageNameFromPath(path) {
-    const segments = path.split("/").filter(Boolean);
-    return segments[0] || null;
-  }
-  function trackPageView() {
-    const path = window.location.pathname;
-    if (path === lastPath) return;
-    lastPath = path;
-    const pageName = getPageNameFromPath(path) || "home";
-    const appId = "69e2510f5a99ce09581b1576";
-    if (!appId) return;
-    fetch(`/api/app-logs/${appId}/log-user-in-app/${pageName}`, {
-      method: "POST",
-    }).catch(() => {});
-  }
-  const originalPushState = history.pushState.bind(history);
-  history.pushState = function (...args) {
-    originalPushState(...args);
-    trackPageView();
-  };
-  const originalReplaceState = history.replaceState.bind(history);
-  history.replaceState = function (...args) {
-    originalReplaceState(...args);
-    trackPageView();
-  };
-  window.addEventListener("popstate", trackPageView);
-  trackPageView();
-}
-</script>
- </head>
- <body>
-  <div id="root"></div>
+  <script src="assets/js/offline.js?v=1.2.2"></script>
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;7c19582a1c9b4275b98b03748066b273&quot;,&quot;r&quot;:1,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
  </body>
 </html>
